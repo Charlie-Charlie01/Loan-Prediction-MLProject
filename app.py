@@ -20,16 +20,16 @@ applicant information. Fill in the form below to get a prediction.
 
 # Load the saved model
 @st.cache_resource
-def model():
+def load_model():
     try:
-        with open('model.pkl', 'rb') as file:
+        with open('loan_model.pkl', 'rb') as file:
             model = pickle.load(file)
         return model
     except FileNotFoundError:
         st.error("Model file not found. Please make sure 'loan_model.pkl' is in the same directory as this app.")
         return None
 
-model = model()
+model = load_model()
 
 # Create input form
 st.header("Applicant Information")
