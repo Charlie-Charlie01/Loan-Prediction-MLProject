@@ -18,18 +18,37 @@ This application predicts whether a loan application will be approved based on
 applicant information. Fill in the form below to get a prediction.
 """)
 
+# Debug: Show files in directory
+st.sidebar.subheader("Debug Information")
+st.sidebar.write("Files in directory:")
+st.sidebar.write(os.listdir())
+
 # Load the saved model
 @st.cache_resource
 def load_model():
     try:
         with open('loan_model.pkl', 'rb') as file:
             model = pickle.load(file)
+        st.sidebar.success("Model loaded successfully!")
         return model
     except FileNotFoundError:
         st.error("Model file not found. Please make sure 'loan_model.pkl' is in the same directory as this app.")
         return None
+    except Exception as e:
+        st.error(f"Error loading model: {e}")
+        return None
 
 model = load_model()
+
+# If model loaded successfully, show its expected features
+if model is not None:
+    st.sidebar.subheader("Model Information")
+    if hasattr(model, 'feature_names_in_'):
+        st.sidebar.write("Model expects these features:")
+        st.sidebar.write(list(model.feature_names_in_))
+    elif hasattr(model, 'steps') and hasattr(model.steps[-1][1], 'feature_names_in_'):
+        st.sidebar.write("Model expects these features:")
+        st.sidebar.write(list(model.steps[-1][1].feature_names_in_))
 
 # Create input form
 st.header("Applicant Information")
@@ -54,11 +73,10 @@ with col2:
 
 # Function to preprocess input data
 def preprocess_input():
-    # Create a dictionary of features
+    # Create a dictionary with all the features your model expects
     data = {
-        'Gender': 1 if gender == "Male" else 0,
+        # Original non-transformed features
         'Married': 1 if married == "Married" else 0,
-        'Dependents': 3 if dependents == "3+" else int(dependents),
         'Education': 1 if education == "Graduate" else 0,
         'Self_Employed': 1 if self_employed == "Yes" else 0,
         'ApplicantIncome': applicant_income,
@@ -66,14 +84,30 @@ def preprocess_input():
         'LoanAmount': loan_amount,
         'Loan_Amount_Term': loan_term,
         'Credit_History': 1 if credit_history == "Good" else 0,
-        'Property_Area_Rural': 1 if property_area == "Rural" else 0,
-        'Property_Area_Semiurban': 1 if property_area == "Semiurban" else 0,
-        'Property_Area_Urban': 1 if property_area == "Urban" else 0
+        
+        # Property Area as a single feature (not one-hot encoded)
+        'Property_Area': property_area,  # Use the string value directly
+        
+        # Other one-hot encoded features
+        'Gender_1': 1 if gender == "Male" else 0,
+        
+        # Transformed features
+        'LoanAmount_log': np.log(loan_amount + 1),
+        
+        # One-hot encoded Dependents
+        'Dependents_1': 1 if dependents == "1" else 0,
+        'Dependents_2': 1 if dependents == "2" else 0,
+        'Dependents_3': 1 if dependents == "3+" else 0,
     }
     
-    # Create DataFrame with the exact column order expected by your model
-    # Note: You might need to adjust these columns based on your actual model
+    # Create DataFrame with these features
     features = pd.DataFrame(data, index=[0])
+    
+    # Debug: Show the prepared data
+    st.sidebar.subheader("Input Data")
+    st.sidebar.dataframe(features)
+    
+    # Return the features dataframe
     return features
 
 # Prediction button
@@ -125,6 +159,11 @@ if st.button("Predict Loan Approval"):
         except Exception as e:
             st.error(f"Error making prediction: {e}")
             st.write("Please check that your input data matches what the model expects.")
+            
+            # More detailed error information for debugging
+            import traceback
+            st.sidebar.subheader("Detailed Error")
+            st.sidebar.text(traceback.format_exc())
 
 # Expander for model information
 with st.expander("About this Model"):
@@ -136,13 +175,6 @@ with st.expander("About this Model"):
     **Note:** This is a predictive tool and the actual loan approval decision may depend on
     additional factors not considered by this model.
     """)
-
-# Sidebar for additional options
-st.sidebar.header("Options")
-if st.sidebar.checkbox("Show input data summary"):
-    st.sidebar.subheader("Input Data Summary")
-    input_data = preprocess_input()
-    st.sidebar.write(input_data)
 
 # Footer
 st.markdown("""
