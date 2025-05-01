@@ -73,10 +73,17 @@ with col2:
 
 # Function to preprocess input data
 def preprocess_input():
+    # Map dependents value to appropriate numeric value
+    dependents_value = 3 if dependents == "3+" else int(dependents)
+    
+    # Map gender to appropriate numeric value (assuming Male=1, Female=0)
+    gender_value = 1 if gender == "Male" else 0
+    
     # Create a dictionary with all the features your model expects
     data = {
-        # Original non-transformed features
+        'Gender': gender_value,  # Use numeric value directly
         'Married': 1 if married == "Married" else 0,
+        'Dependents': dependents_value,  # Use numeric value directly
         'Education': 1 if education == "Graduate" else 0,
         'Self_Employed': 1 if self_employed == "Yes" else 0,
         'ApplicantIncome': applicant_income,
@@ -84,20 +91,7 @@ def preprocess_input():
         'LoanAmount': loan_amount,
         'Loan_Amount_Term': loan_term,
         'Credit_History': 1 if credit_history == "Good" else 0,
-        
-        # Property Area as a single feature (not one-hot encoded)
         'Property_Area': property_area,  # Use the string value directly
-        
-        # Other one-hot encoded features
-        'Gender_1': 1 if gender == "Male" else 0,
-        
-        # Transformed features
-        'LoanAmount_log': np.log(loan_amount + 1),
-        
-        # One-hot encoded Dependents
-        'Dependents_1': 1 if dependents == "1" else 0,
-        'Dependents_2': 1 if dependents == "2" else 0,
-        'Dependents_3': 1 if dependents == "3+" else 0,
     }
     
     # Create DataFrame with these features
@@ -107,7 +101,6 @@ def preprocess_input():
     st.sidebar.subheader("Input Data")
     st.sidebar.dataframe(features)
     
-    # Return the features dataframe
     return features
 
 # Prediction button
